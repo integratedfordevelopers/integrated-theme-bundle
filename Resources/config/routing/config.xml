@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<routes xmlns="http://symfony.com/schema/routing"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://symfony.com/schema/routing http://symfony.com/schema/routing/routing-1.0.xsd">
+
+    <route id="integrated_theme_theme_index" path="/" methods="GET">
+        <default key="_controller">integrated_theme.controller.theme:indexAction</default>
+    </route>
+
+    <route id="integrated_theme_theme_edit" path="/{id}/{theme}" methods="GET">
+        <default key="_controller">integrated_theme.controller.theme:editAction</default>
+        <default key="theme">false</default>
+        <option key="expose">true</option>
+    </route>
+
+    <route id="integrated_theme_theme_edit_rest" path="/{id}/{theme}" methods="POST">
+        <default key="_controller">integrated_theme.controller.theme:editAction</default>
+    </route>
+
+</routes>

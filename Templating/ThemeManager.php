@@ -11,6 +11,9 @@
 
 namespace Integrated\Bundle\ThemeBundle\Templating;
 
+use Doctrine\Common\Cache\FilesystemCache;
+use Symfony\Bridge\Doctrine\RegistryInterface;
+use Symfony\Bundle\FrameworkBundle\Templating\TemplateNameParser;
 use Symfony\Component\HttpKernel\Kernel;
 
 /**
@@ -33,12 +36,20 @@ class ThemeManager
      */
     private $activeTheme = 'default';
 
+    private $cache;
+
     /**
      * @param Kernel $kernel
+     * @param TemplateNameParser $nameParser
+     * @param FilesystemCache $cache
+     * @param RegistryInterface $doctrine
      */
-    public function __construct(Kernel $kernel)
+    public function __construct(Kernel $kernel, TemplateNameParser $nameParser, FilesystemCache $cache, RegistryInterface $doctrine)
     {
         $this->kernel = $kernel;
+        $this->nameParser = $nameParser;
+        $this->cache = $cache;
+        $this->doctrine = $doctrine;
     }
 
     /**
@@ -66,7 +77,6 @@ class ThemeManager
     {
         if ($this->hasTheme($theme)) {
             $this->getTheme($theme)->addPath($path);
-
         } else {
             $this->registerTheme($theme, [$path]);
         }
@@ -137,6 +147,37 @@ class ThemeManager
 
         foreach ($theme->getPaths() as $path) {
             if (file_exists($this->locateResource($path) . '/' . $template)) {
+                $filePath = $this->kernel->getCacheDir() . '/integrated' . strchr($path, '/themes') . '/' . $template;
+
+                $dirname = dirname($filePath);
+                if (!is_dir($dirname)) {
+                    mkdir($dirname, 0755, true);
+                }
+
+                $em = $this->doctrine->getEntityManager();
+
+                $themePath = "";
+
+                if (file_exists($filePath)) {
+                    $themePath = $em->getRepository("IntegratedThemeBundle:ThemePath")->findOneByThemePath($this->locateResource($path)  . '/' . $template, file_get_contents($filePath));
+                } elseif (!file_exists($filePath)) {
+                    $newCache = $em->getRepository("IntegratedThemeBundle:ThemePath")->findOneBy(["path" => $this->locateResource($path)  . '/' . $template]);
+                }
+
+                if (!empty($themePath)) {
+                    $file = fopen($filePath, 'w');
+                    fwrite($file, $themePath->getContent());
+                    fclose($file);
+                    return $filePath;
+                } elseif (empty($themePath) && file_exists($filePath)) {
+                    return $filePath;
+                } elseif (!empty($newCache)) {
+                    $file = fopen($filePath, 'w');
+                    fwrite($file, $newCache->getContent());
+                    fclose($file);
+                    return $filePath;
+                }
+
                 return $path . '/' . $template;
             }
         }
