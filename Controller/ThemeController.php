@@ -11,13 +11,8 @@
 
 namespace Integrated\Bundle\ThemeBundle\Controller;
 
-use Integrated\Bundle\ChannelBundle\Form\Type\ActionsType;
-use Integrated\Bundle\ChannelBundle\Form\Type\ConfigFormType;
-use Integrated\Bundle\ChannelBundle\Form\Type\DeleteFormType;
-use Integrated\Bundle\ChannelBundle\Model\Config;
 use Integrated\Bundle\ThemeBundle\Form\Type\ThemeEditorType;
 use Integrated\Common\Channel\Connector\Adapter\RegistryInterface;
-use Integrated\Common\Channel\Connector\AdapterInterface;
 use Integrated\Common\Channel\Connector\Config\ConfigManagerInterface;
 
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
@@ -212,119 +207,6 @@ class ThemeController extends Controller
             'level' => $level,
             'themeId' => $id
         ]);
-    }
-
-    /**
-     * @param Request $request
-     * @param string  $id
-     *
-     * @return \Symfony\Component\HttpFoundation\Response
-     */
-    public function deleteAction(Request $request, $id)
-    {
-        $data = $this->manager->find($id);
-
-        // It should always be possible to delete a connector even if the adaptor itself does
-        // not exist anymore. So unlike the new and edit actions this action will not throw a
-        // not found exception when the adaptor does not exist.
-
-        if (!$data) {
-            return $this->redirect($this->generateUrl('integrated_channel_config_index')); // data is already gone
-        }
-
-        $form = $this->createDeleteForm($data);
-
-        if ($request->isMethod('delete')) {
-            $form->handleRequest($request);
-
-            if ($form->get('actions')->getData() == 'cancel') {
-                return $this->redirect($this->generateUrl('integrated_channel_config_index'));
-            }
-
-            if ($form->isValid()) {
-                $this->manager->remove($data);
-
-                if ($message = $this->getFlashMessage()) {
-                    $message->success(sprintf('The config %s is removed', $data->getName()));
-                }
-
-                return $this->redirect($this->generateUrl('integrated_channel_config_index'));
-            }
-        }
-
-        return $this->render('IntegratedChannelBundle:Config:delete.html.twig', [
-            'adapter' => $this->registry->hasAdapter(
-                $data->getAdapter()
-            ) ? $this->registry->getAdapter($data->getAdapter()) : null,
-            'data'    => $data,
-            'form'    => $form->createView()
-        ]);
-    }
-
-    /**
-     * @param Config           $data
-     * @param AdapterInterface $adapter
-     *
-     * @return \Symfony\Component\Form\Form
-     */
-    protected function createNewForm(Config $data, AdapterInterface $adapter)
-    {
-        $form = $this->createForm(ConfigFormType::class, $data, [
-            'adapter' => $adapter,
-            'action'  => $this->generateUrl(
-                'integrated_channel_config_new',
-                ['adapter' => $adapter->getManifest()->getName()]
-            ),
-            'method'  => 'POST',
-        ]);
-
-        $form->add('actions', ActionsType::class, ['buttons' => ['create', 'cancel']]);
-
-        return $form;
-    }
-
-    /**
-     * @param Config           $data
-     * @param AdapterInterface $adapter
-     *
-     * @return \Symfony\Component\Form\Form
-     */
-    protected function createEditForm(Config $data, AdapterInterface $adapter)
-    {
-        $form = $this->createForm(ConfigFormType::class, $data, [
-            'adapter' => $adapter,
-            'action'  => $this->generateUrl('integrated_channel_config_edit', ['id' => $data->getName()]),
-            'method'  => 'PUT',
-        ]);
-
-        $form->add('actions', ActionsType::class, ['buttons' => ['save', 'cancel']]);
-
-        return $form;
-    }
-
-    /**
-     * @param Config $data
-     *
-     * @return \Symfony\Component\Form\Form
-     */
-    protected function createDeleteForm(Config $data)
-    {
-        $form = $this->createForm(DeleteFormType::class, $data, [
-            'action'  => $this->generateUrl('integrated_channel_config_delete', ['id' => $data->getName()]),
-            'method'  => 'DELETE',
-        ]);
-
-        $form->add('actions', ActionsType::class, ['buttons' => ['delete', 'cancel']]);
-
-        return $form;
-    }
-
-    /**
-     * @return \Knp\Component\Pager\Paginator
-     */
-    protected function getPaginator()
-    {
-        return $this->get('knp_paginator');
     }
 
     /**
