@@ -93,11 +93,11 @@
                         $(pathArray).each(function(){
                             link += "/" + this;
                         });
-                        var menulink = '{{ menulink }}';
+                        var menuLink = '{{ menuLink }}';
 
                         if(link.endsWith(".twig"))
                         {
-                            var path = encodeURIComponent(menulink + link);
+                            var path = encodeURIComponent(menuLink + link);
 
                             document.location = Routing.generate('integrated_theme_theme_edit', {
                                 'id': '{{ app.request.get('id') }}',

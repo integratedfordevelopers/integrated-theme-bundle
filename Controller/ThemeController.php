@@ -99,10 +99,17 @@ class ThemeController extends Controller
                 foreach ($routes->getPaths() as $route) {
                     $routePath = strtolower($route);
 
-                    $find = array("@integrated", "bundle", "theme", "resources");
+                    $find = array("@integrated", "bundle", "theme", "resources", );
                     $replace = array("/vagrant/vendor/integrated/", "-bundle", "-theme", "Resources");
 
                     $falsePath = str_replace($find, $replace, $routePath);
+
+                    $themeBundle = strstr($falsePath, "theme-bundle", true);
+
+                    if (substr($themeBundle, -2) == "/-") {
+                        $falsePath = str_replace("-theme-bundle", "theme-bundle", $falsePath);
+                    }
+
                     $path = str_replace("-themes", "themes", $falsePath);
 
                     array_push($paths, explode("/", ltrim($path, "/")));
@@ -116,12 +123,9 @@ class ThemeController extends Controller
             $finder->files()->in($find);
         }
 
-        $d = [];
         $realPath = [];
         foreach ($finder as $f) {
             array_push($realPath, $f->getRealPath());
-
-            array_push($d, explode("/", ltrim($f->getRealPath(), "/")));
         }
 
         if ($theme == "false" || empty($theme)) {
@@ -131,7 +135,7 @@ class ThemeController extends Controller
             );
         }
 
-        $menulink = strstr($realPath[0], "integrated", true) . "integrated";
+        $menuLink = strstr($realPath[0], "integrated", true) . "integrated";
 
         $result = array();
         $count = array();
@@ -203,7 +207,7 @@ class ThemeController extends Controller
         return $this->render('IntegratedThemeBundle:Theme:edit.html.twig', [
             'list' => $list,
             'editForm' => $form->createView(),
-            'menulink' => $menulink,
+            'menuLink' => $menuLink,
             'title' => $title,
             'level' => $level,
             'themeId' => $id
