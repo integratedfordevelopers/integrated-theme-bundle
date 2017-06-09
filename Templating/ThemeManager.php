@@ -15,6 +15,7 @@ use Doctrine\Common\Cache\FilesystemCache;
 use Symfony\Bridge\Doctrine\RegistryInterface;
 use Symfony\Bundle\FrameworkBundle\Templating\TemplateNameParser;
 use Symfony\Component\HttpKernel\Kernel;
+use Integrated\Bundle\ThemeBundle\Exception\CircularFallbackException;
 
 /**
  * @author Ger Jan van den Bosch <gerjan@e-active.nl>
@@ -36,6 +37,14 @@ class ThemeManager
      */
     private $activeTheme = 'default';
 
+    /**
+     * @var array
+     */
+    private $fallbackStack = [];
+
+    /**
+     * @var FilesystemCache
+     */
     private $cache;
 
     /**
@@ -57,6 +66,7 @@ class ThemeManager
      * @param array $paths
      * @param array $fallback
      * @return $this
+     * @throws \InvalidArgumentException
      */
     public function registerTheme($id, array $paths, array $fallback = [])
     {
@@ -96,6 +106,7 @@ class ThemeManager
     /**
      * @param string $id
      * @return Theme
+     * @throws \InvalidArgumentException
      */
     public function getTheme($id)
     {
@@ -125,6 +136,7 @@ class ThemeManager
     /**
      * @param string $id
      * @return $this
+     * @throws \InvalidArgumentException
      */
     public function setActiveTheme($id)
     {
@@ -140,13 +152,22 @@ class ThemeManager
      * @param string $template
      * @param string $theme
      * @return string
+     * @throws CircularFallbackException
      */
     public function locateTemplate($template, $theme = null)
     {
+        // keep BC
+        if ('@' == substr($template, 0, 1)) {
+            return $template;
+        }
+
         $theme = $this->getTheme(null === $theme ? $this->getActiveTheme() : $theme);
+
+        $this->fallbackStack[$theme->getId()] = 1;
 
         foreach ($theme->getPaths() as $path) {
             if (file_exists($this->locateResource($path) . '/' . $template)) {
+                $this->fallbackStack = []; // reset
                 $filePath = $this->kernel->getCacheDir() . '/integrated' . strchr($path, '/themes') . '/' . $template;
 
                 $dirname = dirname($filePath);
@@ -183,6 +204,13 @@ class ThemeManager
         }
 
         foreach ($theme->getFallback() as $fallback) {
+            if (isset($this->fallbackStack[$fallback])) {
+                throw CircularFallbackException::templateNotFound(
+                    $template,
+                    array_merge(array_keys($this->fallbackStack), [$fallback])
+                );
+            }
+
             if ($resource = $this->locateTemplate($template, $fallback)) {
                 return $resource;
             }

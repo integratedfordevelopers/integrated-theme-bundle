@@ -11,23 +11,27 @@
 
 namespace Integrated\Bundle\ThemeBundle\Controller;
 
+use Braincrafted\Bundle\BootstrapBundle\Session\FlashMessage;
+use Doctrine\Bundle\DoctrineBundle\Registry;
 use Integrated\Bundle\ThemeBundle\Form\Type\ThemeEditorType;
+use Integrated\Bundle\ThemeBundle\Menu\MenuBuilder;
+use Integrated\Bundle\ThemeBundle\Templating\Helper\ThemeManagerHelper;
+use Integrated\Bundle\ThemeBundle\Templating\ThemeManager;
 use Integrated\Common\Channel\Connector\Adapter\RegistryInterface;
 use Integrated\Common\Channel\Connector\Config\ConfigManagerInterface;
-
-use Symfony\Bundle\FrameworkBundle\Controller\Controller;
-
-use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Bundle\TwigBundle\TwigEngine;
+use Symfony\Component\Form\FormFactoryInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
-
 use Symfony\Component\Finder\Finder;
-
 use Integrated\Bundle\ThemeBundle\Entity\ThemePath;
+use Symfony\Component\Routing\Generator\UrlGenerator;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
- * @author Jan Sanne Mulder <jansanne@e-active.nl>
+ * @author Christiaan Goslinga
  */
-class ThemeController extends Controller
+class ThemeController
 {
     /**
      * @var ConfigManagerInterface
@@ -40,21 +44,79 @@ class ThemeController extends Controller
     protected $registry;
 
     /**
-     * Constructor/
-     *
+     * @var ThemeManager
+     */
+    protected $themeManager;
+
+    /**
+     * @var MenuBuilder
+     */
+    protected $menuBuilder;
+
+    /**
+     * @var FlashMessage
+     */
+    protected $flashMessage;
+
+    /**
+     * @var ThemeManagerHelper
+     */
+    protected $themeManagerHelper;
+
+    /**
+     * @var TwigEngine
+     */
+    protected $twigEngine;
+
+    /**
+     * @var UrlGenerator
+     */
+    protected $urlGenerator;
+
+    /**
+     * @var Registry
+     */
+    protected $doctrine;
+
+    /**
+     * @var FormFactoryInterface
+     */
+    protected $formFactoryInterface;
+
+    /**
      * @param ConfigManagerInterface $manager
-     * @param RegistryInterface      $registry
-     * @param ContainerInterface     $container
+     * @param RegistryInterface $registry
+     * @param ThemeManager $themeManager
+     * @param MenuBuilder $menuBuilder
+     * @param FlashMessage $flashMessage
+     * @param ThemeManagerHelper $themeManagerHelper
+     * @param TwigEngine $twigEngine
+     * @param UrlGeneratorInterface $urlGenerator
+     * @param Registry $doctrine
+     * @param FormFactoryInterface $formFactoryInterface
      */
     public function __construct(
         ConfigManagerInterface $manager,
         RegistryInterface $registry,
-        ContainerInterface $container
+        ThemeManager $themeManager,
+        MenuBuilder $menuBuilder,
+        FlashMessage $flashMessage,
+        ThemeManagerHelper $themeManagerHelper,
+        TwigEngine $twigEngine,
+        UrlGeneratorInterface $urlGenerator,
+        Registry $doctrine,
+        FormFactoryInterface $formFactoryInterface
     ) {
         $this->manager = $manager;
         $this->registry = $registry;
-
-        $this->container = $container;
+        $this->themeManager = $themeManager;
+        $this->menuBuilder = $menuBuilder;
+        $this->flashMessage = $flashMessage;
+        $this->themeManagerHelper = $themeManagerHelper;
+        $this->twigEngine = $twigEngine;
+        $this->urlGenerator = $urlGenerator;
+        $this->doctrine = $doctrine;
+        $this->formFactoryInterface = $formFactoryInterface;
     }
 
     /**
@@ -62,17 +124,12 @@ class ThemeController extends Controller
      */
     public function indexAction()
     {
-        $themeManager = $this->get('integrated_theme.templating.theme_manager');
-
-        $routeId = [];
-
-        foreach ($themeManager->getThemes() as $routes) {
-            array_push($routeId, $routes->getId());
-        }
-
-        return $this->render('IntegratedThemeBundle:Theme:index.html.twig', [
-            'routeId' => $routeId
-        ]);
+        return $this->twigEngine->renderResponse(
+            'IntegratedThemeBundle:Theme:index.html.twig',
+            [
+                'routeId' => $this->themeManagerHelper->getRouteId()
+            ]
+        );
     }
 
     /**
@@ -82,14 +139,13 @@ class ThemeController extends Controller
      *
      * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function editAction(Request $request, $id, $theme)
+    public function editAction(Request $request, $id, $theme = null)
     {
-        $themeManager = $this->get('integrated_theme.templating.theme_manager');
         $finder = new Finder();
         $paths = [];
         $pathArray = [];
 
-        foreach ($themeManager->getThemes() as $routes) {
+        foreach ($this->themeManager->getThemes() as $routes) {
             if ($routes->getId() == $id) {
                 foreach ($routes->getPaths() as $route) {
                     $routePath = strtolower($route);
@@ -123,10 +179,12 @@ class ThemeController extends Controller
             array_push($realPath, $f->getRealPath());
         }
 
-        if ($theme == "false" || empty($theme)) {
-            return $this->redirectToRoute(
-                'integrated_theme_theme_edit',
-                ["id" => $id, "theme" => urlencode($realPath[0])]
+        if (null === $theme) {
+            return new RedirectResponse(
+                $this->urlGenerator->generate(
+                    'integrated_theme_theme_edit_theme',
+                    ["id" => $id, "theme" => urlencode($realPath[0])]
+                )
             );
         }
 
@@ -153,11 +211,9 @@ class ThemeController extends Controller
 
         $level = max($count) + 1;
 
-        $menu = $this->get("integrated_theme.menu.menubuilder");
+        $list = $this->menuBuilder->buildMenu($result, $id);
 
-        $list = $menu->buildMenu($result, $id);
-
-        $em = $this->getDoctrine()->getManager();
+        $em = $this->doctrine->getManager();
 
         if (strpos($theme, '/') === false) {
             $link = urldecode($theme);
@@ -178,7 +234,7 @@ class ThemeController extends Controller
             $themePath->setPath($link);
         }
 
-        $form = $this->createForm(ThemeEditorType::class, $themePath);
+        $form = $this->formFactoryInterface->create(ThemeEditorType::class, $themePath);
 
         $form->handleRequest($request);
 
@@ -187,19 +243,16 @@ class ThemeController extends Controller
 
             $themePath->setContent($themePathContent->getContent());
 
-            $em = $this->getDoctrine()->getManager();
             $em->persist($themePath);
             $em->flush();
 
-            if ($message = $this->getFlashMessage()) {
-                $message->success(sprintf('The changes to the theme %s are saved', $title));
-            }
+            $this->flashMessage->success(sprintf('The changes to the theme %s are saved', $title));
 
-            return $this->redirectToRoute('integrated_theme_theme_edit', ["id" => $id, "theme" => $theme]);
+            return new RedirectResponse('integrated_theme_theme_edit_theme', ["id" => $id, "theme" => $theme]);
         }
 
 
-        return $this->render('IntegratedThemeBundle:Theme:edit.html.twig', [
+        return $this->twigEngine->renderResponse('IntegratedThemeBundle:Theme:edit.html.twig', [
             'list' => $list,
             'editForm' => $form->createView(),
             'menuLink' => $menuLink,
@@ -207,13 +260,5 @@ class ThemeController extends Controller
             'level' => $level,
             'themeId' => $id
         ]);
-    }
-
-    /**
-     * @return \Braincrafted\Bundle\BootstrapBundle\Session\FlashMessage
-     */
-    protected function getFlashMessage()
-    {
-        return $this->get('braincrafted_bootstrap.flash');
     }
 }

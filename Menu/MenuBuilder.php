@@ -1,13 +1,18 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: Christiaan Goslinga
- * Date: 3-4-2017
- * Time: 16:41
- */
+/*
+* This file is part of the Integrated package.
+*
+* (c) e-Active B.V. <integrated@e-active.nl>
+*
+* For the full copyright and license information, please view the LICENSE
+* file that was distributed with this source code.
+*/
 
 namespace Integrated\Bundle\ThemeBundle\Menu;
 
+/**
+ * @author Christiaan Goslinga
+ */
 class MenuBuilder
 {
     private $i = 0;

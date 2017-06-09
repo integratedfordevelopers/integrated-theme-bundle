@@ -8,9 +8,15 @@
         <default key="_controller">integrated_theme.controller.theme:indexAction</default>
     </route>
 
-    <route id="integrated_theme_theme_edit" path="/{id}/{theme}" methods="GET">
+    <route id="integrated_theme_theme_edit_theme" path="/{id}/{theme}" methods="GET">
         <default key="_controller">integrated_theme.controller.theme:editAction</default>
-        <default key="theme">false</default>
+
+        <option key="expose">true</option>
+    </route>
+
+    <route id="integrated_theme_theme_edit" path="/{id}" methods="GET">
+        <default key="_controller">integrated_theme.controller.theme:editAction</default>
+
         <option key="expose">true</option>
     </route>
 

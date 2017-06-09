@@ -30,5 +30,9 @@
         <service id="integrated_theme.menu.menubuilder" class="Integrated\Bundle\ThemeBundle\Menu\MenuBuilder">
         </service>
 
+        <service id="integrated_theme.templating.helper.theme_manager_helper" class="Integrated\Bundle\ThemeBundle\Templating\Helper\ThemeManagerHelper">
+            <argument type="service" id="integrated_theme.templating.theme_manager" />
+        </service>
+
     </services>
 </container>
