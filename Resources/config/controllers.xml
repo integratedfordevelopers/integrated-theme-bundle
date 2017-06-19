@@ -13,9 +13,6 @@
     <services>
 
         <service id="integrated_theme.controller.theme" class="%integrated_theme.controller.theme.class%">
-            <argument type="service" id="integrated_channel.config.manager" />
-            <argument type="service" id="integrated_channel.adapter.registry" />
-            <argument type="service" id="integrated_theme.templating.theme_manager" />
             <argument type="service" id="integrated_theme.menu.menubuilder" />
             <argument type="service" id="braincrafted_bootstrap.flash" />
             <argument type="service" id="integrated_theme.templating.helper.theme_manager_helper" />
@@ -23,6 +20,7 @@
             <argument type="service" id="router" />
             <argument type="service" id="doctrine" />
             <argument type="service" id="form.factory" />
+            <argument type="service" id="integrated_theme.templating.finder.theme_path_finder" />
 
         </service>
 

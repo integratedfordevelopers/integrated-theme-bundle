@@ -44,7 +44,7 @@
             $(function () {
                 $('#jstree').jstree({
                     "plugins" : [ "wholerow", "state", "sort" ],
-                    'state' : { 'key' : 'jstree' },
+                    'state' : { 'key' : 'jstree', 'ttl' : 6000 },
                     'sort' : function(a, b) {
                         a1 = this.get_node(a);
                         b1 = this.get_node(b);
@@ -55,6 +55,20 @@
                         }
                     }
                 }).on('state_ready.jstree', function() {
+
+//                    if (window.performance) {
+//                        console.info("window.performance work's fine on this browser");
+//                    }
+//
+//                    if (performance.navigation.type !== 1) {
+//                        console.log(performance.navigation.type);
+//                        console.info( "This page is not reloaded" );
+//                        $('#jstree').jstree(true).clear_state();
+//                    } else {
+//                        console.log(performance.navigation.type);
+//                        console.info( "This page is reloaded");
+//                    }
+
                     $("#jstree").jstree('open_all');
 
                     var level = ('{{ level }}' * 24);

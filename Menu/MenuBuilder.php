@@ -15,8 +15,14 @@ namespace Integrated\Bundle\ThemeBundle\Menu;
  */
 class MenuBuilder
 {
-    private $i = 0;
+    /**
+     * @var int
+     */
+    protected $i = 0;
 
+    /**
+     * {@inheritdoc}
+     */
     public function buildMenu(array $array, $theme)
     {
         $html = "<li>";
@@ -33,16 +39,16 @@ class MenuBuilder
             } else {
                 if ($this->i == 0) {
                     if ($html == '<li>') {
-                        $html = '<li data-jstree={"icon":"/images/twigFileIcon.png","selected":true}>' . $v . "</li>";
+                        $html = '<li data-jstree={"icon":"/bundles/integratedtheme/images/twigFileIcon.png","selected":true}>' . $v . "</li>";
                     } else {
-                        $html .= '<li data-jstree={"icon":"/images/twigFileIcon.png","selected":true}>' . $v . "</li>";
+                        $html .= '<li data-jstree={"icon":"/bundles/integratedtheme/images/twigFileIcon.png","selected":true}>' . $v . "</li>";
                     }
                     $this->i++;
                 } else {
                     if ($html == '<li>') {
-                        $html = '<li data-jstree={"icon":"/images/twigFileIcon.png"}>' . $v . "</li>";
+                        $html = '<li data-jstree={"icon":"/bundles/integratedtheme/images/twigFileIcon.png"}>' . $v . "</li>";
                     } else {
-                        $html .= '<li data-jstree={"icon":"/images/twigFileIcon.png"}>' . $v . "</li>";
+                        $html .= '<li data-jstree={"icon":"/bundles/integratedtheme/images/twigFileIcon.png"}>' . $v . "</li>";
                     }
                 }
             }

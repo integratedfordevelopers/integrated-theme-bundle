@@ -34,5 +34,11 @@
             <argument type="service" id="integrated_theme.templating.theme_manager" />
         </service>
 
+        <service id="integrated_theme.templating.finder.theme_path_finder" class="Integrated\Bundle\ThemeBundle\Templating\Finder\ThemePathFinder">
+            <argument type="service" id="integrated_theme.templating.theme_manager" />
+            <argument>%kernel.root_dir%</argument>
+            <argument type="service" id="doctrine.orm.entity_manager" />
+        </service>
+
     </services>
 </container>

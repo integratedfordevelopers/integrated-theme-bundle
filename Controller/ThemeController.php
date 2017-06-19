@@ -15,16 +15,13 @@ use Braincrafted\Bundle\BootstrapBundle\Session\FlashMessage;
 use Doctrine\Bundle\DoctrineBundle\Registry;
 use Integrated\Bundle\ThemeBundle\Form\Type\ThemeEditorType;
 use Integrated\Bundle\ThemeBundle\Menu\MenuBuilder;
+use Integrated\Bundle\ThemeBundle\Templating\Finder\ThemePathFinder;
 use Integrated\Bundle\ThemeBundle\Templating\Helper\ThemeManagerHelper;
-use Integrated\Bundle\ThemeBundle\Templating\ThemeManager;
-use Integrated\Common\Channel\Connector\Adapter\RegistryInterface;
-use Integrated\Common\Channel\Connector\Config\ConfigManagerInterface;
 use Symfony\Bundle\TwigBundle\TwigEngine;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Finder\Finder;
-use Integrated\Bundle\ThemeBundle\Entity\ThemePath;
 use Symfony\Component\Routing\Generator\UrlGenerator;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -33,21 +30,6 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  */
 class ThemeController
 {
-    /**
-     * @var ConfigManagerInterface
-     */
-    protected $manager;
-
-    /**
-     * @var RegistryInterface
-     */
-    protected $registry;
-
-    /**
-     * @var ThemeManager
-     */
-    protected $themeManager;
-
     /**
      * @var MenuBuilder
      */
@@ -84,9 +66,11 @@ class ThemeController
     protected $formFactoryInterface;
 
     /**
-     * @param ConfigManagerInterface $manager
-     * @param RegistryInterface $registry
-     * @param ThemeManager $themeManager
+     * @var ThemePathFinder
+     */
+    protected $themePathFinder;
+
+    /**
      * @param MenuBuilder $menuBuilder
      * @param FlashMessage $flashMessage
      * @param ThemeManagerHelper $themeManagerHelper
@@ -96,20 +80,15 @@ class ThemeController
      * @param FormFactoryInterface $formFactoryInterface
      */
     public function __construct(
-        ConfigManagerInterface $manager,
-        RegistryInterface $registry,
-        ThemeManager $themeManager,
         MenuBuilder $menuBuilder,
         FlashMessage $flashMessage,
         ThemeManagerHelper $themeManagerHelper,
         TwigEngine $twigEngine,
         UrlGeneratorInterface $urlGenerator,
         Registry $doctrine,
-        FormFactoryInterface $formFactoryInterface
+        FormFactoryInterface $formFactoryInterface,
+        ThemePathFinder $themePathFinder
     ) {
-        $this->manager = $manager;
-        $this->registry = $registry;
-        $this->themeManager = $themeManager;
         $this->menuBuilder = $menuBuilder;
         $this->flashMessage = $flashMessage;
         $this->themeManagerHelper = $themeManagerHelper;
@@ -117,6 +96,7 @@ class ThemeController
         $this->urlGenerator = $urlGenerator;
         $this->doctrine = $doctrine;
         $this->formFactoryInterface = $formFactoryInterface;
+        $this->themePathFinder = $themePathFinder;
     }
 
     /**
@@ -141,43 +121,7 @@ class ThemeController
      */
     public function editAction(Request $request, $id, $theme = null)
     {
-        $finder = new Finder();
-        $paths = [];
-        $pathArray = [];
-
-        foreach ($this->themeManager->getThemes() as $routes) {
-            if ($routes->getId() == $id) {
-                foreach ($routes->getPaths() as $route) {
-                    $routePath = strtolower($route);
-
-                    $find = array("@integrated", "bundle", "theme", "resources", );
-                    $replace = array("/vagrant/vendor/integrated/", "-bundle", "-theme", "Resources");
-
-                    $falsePath = str_replace($find, $replace, $routePath);
-
-                    $themeBundle = strstr($falsePath, "theme-bundle", true);
-
-                    if (substr($themeBundle, -2) == "/-") {
-                        $falsePath = str_replace("-theme-bundle", "theme-bundle", $falsePath);
-                    }
-
-                    $path = str_replace("-themes", "themes", $falsePath);
-
-                    array_push($paths, explode("/", ltrim($path, "/")));
-
-                    array_push($pathArray, $path);
-                }
-            }
-        }
-
-        foreach ($pathArray as $find) {
-            $finder->files()->in($find);
-        }
-
-        $realPath = [];
-        foreach ($finder as $f) {
-            array_push($realPath, $f->getRealPath());
-        }
+        $realPath = $this->themePathFinder->findThemePath($id);
 
         if (null === $theme) {
             return new RedirectResponse(
@@ -210,33 +154,15 @@ class ThemeController
         }
 
         $level = max($count) + 1;
-
         $list = $this->menuBuilder->buildMenu($result, $id);
-
-        $em = $this->doctrine->getManager();
-
-        if (strpos($theme, '/') === false) {
-            $link = urldecode($theme);
-        } else {
-            $link = $theme;
-        }
-
+        $link = urldecode($theme);
         $title = ltrim(strrchr($link, "/"), "/");
-
-        $themePath = $em->getRepository("IntegratedThemeBundle:ThemePath")->findOneBy(["path" => $link]);
-
-        if (empty($themePath)) {
-            $content = file_get_contents($link);
-
-            $themePath = new ThemePath();
-
-            $themePath->setContent($content);
-            $themePath->setPath($link);
-        }
+        $themePath = $this->themePathFinder->findThemeContent($link);
 
         $form = $this->formFactoryInterface->create(ThemeEditorType::class, $themePath);
-
         $form->handleRequest($request);
+
+        $em = $this->doctrine->getManager();
 
         if ($form->isSubmitted() && $form->isValid()) {
             $themePathContent = $form->getData();
@@ -248,7 +174,12 @@ class ThemeController
 
             $this->flashMessage->success(sprintf('The changes to the theme %s are saved', $title));
 
-            return new RedirectResponse('integrated_theme_theme_edit_theme', ["id" => $id, "theme" => $theme]);
+            return new RedirectResponse(
+                $this->urlGenerator->generate(
+                    'integrated_theme_theme_edit_theme',
+                    ["id" => $id, "theme" => $theme]
+                )
+            );
         }
 
 
