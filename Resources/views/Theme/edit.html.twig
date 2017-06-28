@@ -1,0 +1,151 @@
+{% extends 'IntegratedThemeBundle::base.html.twig' %}
+
+{% block crumbs %}
+    <div class="breadcrumb-holder">
+        <div class="container">
+            <ol class="breadcrumb">
+                <li>
+                    <a href="{{ path('integrated_theme_theme_index') }}">{% trans %}Home{% endtrans %}</a>
+                </li>
+                <li class="active">{% trans %}Edit{% endtrans %}</li>
+            </ol>
+        </div>
+    </div>
+{% endblock %}
+
+{% block content %}
+    {% block stylesheets %}
+        {{ parent() }}
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
+    {% endblock %}
+
+    {% block javascript %}
+        {{ parent() }}
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/jstree.min.js"></script>
+        <script src="//cdn.jsdelivr.net/ace/1.2.6/min/ace.js"></script>
+        <script>
+            var editor = ace.edit("editor");
+            editor.setTheme("ace/theme/twilight");
+            editor.getSession().setMode("ace/mode/twig");
+
+            var content = $("#{{ editForm.content.vars.id }}");
+
+            editor.getSession().setValue(content.val());
+            editor.getSession().on('change', function(){
+                content.val(editor.getSession().getValue());
+            });
+
+            editor.setOptions({
+                maxLines: Infinity
+            });
+        </script>
+        <script>
+            $(function () {
+                $('#jstree').jstree({
+                    "plugins" : [ "wholerow", "state", "sort" ],
+                    'state' : { 'key' : 'jstree', 'ttl' : 6000 },
+                    'sort' : function(a, b) {
+                        a1 = this.get_node(a);
+                        b1 = this.get_node(b);
+                        if (a1.icon == b1.icon){
+                            return (a1.text > b1.text) ? 1 : -1;
+                        } else {
+                            return (a1.icon > b1.icon) ? -1 : 1;
+                        }
+                    }
+                }).on('state_ready.jstree', function() {
+
+//                    if (window.performance) {
+//                        console.info("window.performance work's fine on this browser");
+//                    }
+//
+//                    if (performance.navigation.type !== 1) {
+//                        console.log(performance.navigation.type);
+//                        console.info( "This page is not reloaded" );
+//                        $('#jstree').jstree(true).clear_state();
+//                    } else {
+//                        console.log(performance.navigation.type);
+//                        console.info( "This page is reloaded");
+//                    }
+
+                    $("#jstree").jstree('open_all');
+
+                    var level = ('{{ level }}' * 24);
+                    var theme = '{{ themeId }}';
+
+                    $('#jstree ul li.' + theme).each(function() {
+                        $("#" + this.id).css({"visibility":"hidden", "width":"0", "margin-top":"-24px", "padding" : "0"});
+
+                        $("#" + this.id + " > .jstree-children").css({"visibility":"visible", "width":"100%", "min-height":"24px"});
+
+                        $("#jstree-container-ul").css({"width":"0"});
+
+                        var node = $('#jstree').jstree(true).get_node($(this));
+                        var countParents = node.parents.length - 2;
+
+                        $(node.parents).each(function(index, value) {
+                            if (value !== "#" && index !== countParents) {
+                                $("#" + value).css({"visibility":"hidden", "width":"0", "margin-top":"-24px", "padding" : "0"});
+                            } else if(value !== "#" && index == countParents){
+                                $("#" + value).css({"visibility": "hidden", "width": "0", "margin-top": "-24px", "margin-left": "-" + level + "px", "padding": "0"});
+                            }
+                        });
+
+                        $(node.children_d).each(function(index, value) {
+                            $("#" + value).css({"min-height": "24px"});
+                        });
+                    });
+
+                    $('#jstree').on("changed.jstree", function (e, data) {
+                        var i, j, pathArray;
+                        var link = "";
+                        for(i = 0, j = data.selected.length; i < j; i++) {
+                            pathArray = data.instance.get_path(data.selected[i]);
+                        }
+
+                        $(pathArray).each(function(){
+                            link += "/" + this;
+                        });
+                        var menuLink = '{{ menuLink }}';
+
+                        if(link.endsWith(".twig"))
+                        {
+                            var path = encodeURIComponent(menuLink + link);
+
+                            document.location = Routing.generate('integrated_theme_theme_edit_theme', {
+                                'id': '{{ app.request.get('id') }}',
+                                'theme': path
+                            });
+                        }
+                    });
+                });
+            });
+        </script>
+    {% endblock %}
+
+    <div class="col-md-3">
+        <aside>
+            <div id="jstree" class="aside-holder section-gray section-shadow section-radius">
+                <ul>
+                    {{ list|raw }}
+                </ul>
+            </div>
+        </aside>
+    </div>
+
+    <div class="col-md-9 push-sm-down">
+        <h1 class="main-title font-regular">Edit <small>{{ title }}</small></h1>
+        <section class="section-white section-padding section-shadow section-radius">
+            <pre id="editor"></pre>
+
+            {{ form_start(editForm) }}
+                {{ form_errors(editForm) }}
+
+                {{ form_row(editForm.content) }}
+
+                <button type="submit" class="btn btn-primary" formnovalidate>Save</button>
+            {{ form_end(editForm) }}
+        </section>
+    </div>
+{% endblock %}

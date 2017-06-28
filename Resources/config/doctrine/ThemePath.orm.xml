@@ -1,0 +1,16 @@
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+        http://doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="Integrated\Bundle\ThemeBundle\Entity\ThemePath" table="themepath" repository-class="Integrated\Bundle\ThemeBundle\Repository\ThemePathRepository">
+
+        <id name="id" type="integer">
+            <generator strategy="AUTO"/>
+        </id>
+        <field name="path" type="string" unique="true" />
+        <field name="content" type="text" />
+
+    </entity>
+
+</doctrine-mapping>

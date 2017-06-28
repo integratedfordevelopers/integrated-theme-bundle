@@ -1,0 +1,36 @@
+{% extends 'IntegratedThemeBundle::base.html.twig' %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-12 push-sm-down">
+            <section class="section-white section-padding section-shadow section-radius">
+                <table class="table">
+                    <colgroup>
+                        <col />
+                        <col style="width: 5em" />
+                    </colgroup>
+                    <thead>
+                    <tr>
+                        <th>Theme</th>
+                        <th>{% trans %}Actions{% endtrans %}</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for id in routeId %}
+                        <tr>
+                            <td>
+                                {{ id }}
+                            </td>
+                            <td>
+                                <a href="{{ path('integrated_theme_theme_edit', {'id': id}) }}" title="{% trans %}Edit{% endtrans %}">
+                                    {{ icon('pencil') }}
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+        </div>
+    </div>
+{% endblock %}

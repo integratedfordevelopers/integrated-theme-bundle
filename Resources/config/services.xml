@@ -9,10 +9,16 @@
         <service id="integrated_theme.templating.theme_manager" class="Integrated\Bundle\ThemeBundle\Templating\ThemeManager">
             <argument type="service" id="kernel" />
             <argument type="service" id="templating.name_parser" />
+            <argument type="service" id="doctrine_cache.providers.theme_cache" />
+            <argument type="service" id="doctrine" />
         </service>
 
         <service id="integrated_theme.form.type.theme_choice" class="Integrated\Bundle\ThemeBundle\Form\Type\ThemeChoiceType">
             <argument type="service" id="integrated_theme.templating.theme_manager" />
+            <tag name="form.type" />
+        </service>
+
+        <service id="integrated_theme.form.type.theme_editor" class="Integrated\Bundle\ThemeBundle\Form\Type\ThemeEditorType">
             <tag name="form.type" />
         </service>
 
@@ -21,13 +27,17 @@
             <tag name="twig.extension" />
         </service>
 
-        <service id="integrated_theme.event_listener.content_image_listener" class="Integrated\Bundle\ThemeBundle\EventListener\Objects\ContentImageListener">
+        <service id="integrated_theme.menu.menubuilder" class="Integrated\Bundle\ThemeBundle\Menu\MenuBuilder">
+        </service>
+
+        <service id="integrated_theme.templating.helper.theme_manager_helper" class="Integrated\Bundle\ThemeBundle\Templating\Helper\ThemeManagerHelper">
             <argument type="service" id="integrated_theme.templating.theme_manager" />
-            <argument type="service" id="doctrine.odm.mongodb.document_manager" />
-            <argument type="service" id="templating" />
-            <argument type="service" id="integrated_slug.slugger" />
-            <argument>%kernel.environment%</argument>
-            <tag name="kernel.event_listener" event="content.event" method="replaceImages" />
+        </service>
+
+        <service id="integrated_theme.templating.finder.theme_path_finder" class="Integrated\Bundle\ThemeBundle\Templating\Finder\ThemePathFinder">
+            <argument type="service" id="integrated_theme.templating.theme_manager" />
+            <argument>%kernel.root_dir%</argument>
+            <argument type="service" id="doctrine.orm.entity_manager" />
         </service>
 
     </services>
